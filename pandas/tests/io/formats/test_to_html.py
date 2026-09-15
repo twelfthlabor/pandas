@@ -773,6 +773,27 @@ def test_to_html_render_links(render_links, expected, datapath):
     assert result == expected
 
 
+@pytest.mark.parametrize("escape", [True, False])
+def test_to_html_render_links_href_escaping(escape):
+    # quotes and ampersands in the URL
+    url = 'http://example.com/search?q=a"b&lang=en'
+    df = pd.DataFrame({"url": [url]})
+
+    result = df.to_html(render_links=True, escape=escape)
+
+    if escape:
+        expected = (
+            '<td><a href="http://example.com/search?q=a&quot;b&amp;lang=en" '
+            'target="_blank">http://example.com/search?q=a"b&amp;lang=en</a></td>'
+        )
+    else:
+        expected = (
+            '<td><a href="http://example.com/search?q=a"b&lang=en" '
+            'target="_blank">http://example.com/search?q=a"b&lang=en</a></td>'
+        )
+    assert expected in result
+
+
 @pytest.mark.parametrize(
     "method,expected",
     [
