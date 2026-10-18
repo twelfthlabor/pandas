@@ -323,15 +323,7 @@ def __internal_pivot_table(
             if i not in data:
                 raise KeyError(i)
 
-        to_filter = []
-        for x in keys + values:
-            if isinstance(x, Grouper):
-                x = x.key
-            try:
-                if x in data:
-                    to_filter.append(x)
-            except TypeError:
-                pass
+        to_filter = _column_labels(keys + values, data)
         if len(to_filter) < len(data.columns):
             data = data[to_filter]
 
@@ -398,7 +390,9 @@ def __internal_pivot_table(
 
     if margins:
         if dropna:
-            data = data[data.notna().all(axis=1)]
+            # GH#65765 as for the table body, drop only rows with NA keys;
+            # NA values are skipped when aggregating their own column
+            data = data[data[_column_labels(keys, data)].notna().all(axis=1)]
         table = _add_margins(
             table,
             data,
@@ -424,6 +418,22 @@ def __internal_pivot_table(
         table = table.dropna(how="all", axis=1)
 
     return cast("DataFrame", table)
+
+
+def _column_labels(labels: list[Any], data: DataFrame) -> list[Hashable]:
+    """
+    Return the labels, or the keys of Groupers, that are columns of ``data``.
+    """
+    columns = []
+    for label in labels:
+        if isinstance(label, Grouper):
+            label = label.key
+        try:
+            if label in data:
+                columns.append(label)
+        except TypeError:
+            pass
+    return columns
 
 
 def _add_margins(

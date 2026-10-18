@@ -3341,6 +3341,44 @@ class TestPivot:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_margins_nan_in_other_values(self):
+        # GH#65765 a NaN in one value column must not drop the row from the
+        # margins of the other value columns
+        df = pd.DataFrame(
+            {
+                "country": ["France", "Spain", "Spain", "Germany", "Spain"],
+                "purchased": ["No", "Yes", "No", "No", "Yes"],
+                "salary": [72000.0, 48000.0, 52000.0, 30000.0, 61000.0],
+                "age": [44.0, 27.0, np.nan, 38.0, 35.0],
+            }
+        )
+        result = df.pivot_table(
+            index="country",
+            columns="purchased",
+            values=["salary", "age"],
+            aggfunc={"salary": "sum", "age": "mean"},
+            margins=True,
+        )
+        index = pd.Index(["France", "Germany", "Spain", "All"], name="country")
+        tm.assert_series_equal(
+            result[("salary", "All")],
+            pd.Series([72000.0, 30000.0, 161000.0, 263000.0], index=index),
+            check_names=False,
+        )
+        tm.assert_series_equal(
+            result[("age", "All")],
+            pd.Series([44.0, 38.0, 31.0, 36.0], index=index),
+            check_names=False,
+        )
+        tm.assert_series_equal(
+            result.loc["All", "salary"],
+            pd.Series(
+                [154000.0, 109000.0, 263000.0],
+                index=pd.Index(["No", "Yes", "All"], name="purchased"),
+            ),
+            check_names=False,
+        )
+
 
 def test_pivot_non_column_label_raises_gh35785():
     # GH#35785
