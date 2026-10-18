@@ -300,6 +300,28 @@ class TestCrosstab:
         expected.columns = pd.Index([3.0, 4.0, np.nan, "All"], name="b")
         tm.assert_frame_equal(actual, expected, check_dtype=False)
 
+    def test_margins_len_counts_rows_with_nan_values(self):
+        # GH#65765 a NaN value is counted by len in the body, so it must be
+        # counted in the margins as well
+        a = np.array(["x", "x", "y"], dtype=object)
+        b = np.array(["p", "q", "p"], dtype=object)
+        values = np.array([1.0, np.nan, 2.0])
+        result = pd.crosstab(
+            a,
+            b,
+            values=values,
+            aggfunc=len,
+            rownames=["a"],
+            colnames=["b"],
+            margins=True,
+        )
+        expected = pd.DataFrame(
+            [[1.0, 1.0, 2.0], [1.0, np.nan, 1.0], [2.0, 1.0, 3.0]],
+            index=pd.Index(["x", "y", "All"], name="a"),
+            columns=pd.Index(["p", "q", "All"], name="b"),
+        )
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
     def test_margin_dropna6(self):
         # GH: 10772: Keep np.nan in result with dropna=False
         a = np.array(["foo", "foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)

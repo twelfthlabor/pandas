@@ -390,8 +390,8 @@ def __internal_pivot_table(
 
     if margins:
         if dropna:
-            # GH#65765 as for the table body, drop only rows with NA keys;
-            # NA values are skipped when aggregating their own column
+            # GH#65765 as for the table body, drop only rows with NA keys and
+            # leave NA values to the aggregation of their own column
             data = data[data[_column_labels(keys, data)].notna().all(axis=1)]
         table = _add_margins(
             table,
