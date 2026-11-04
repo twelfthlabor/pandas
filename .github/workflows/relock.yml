@@ -1,0 +1,37 @@
+name: relock pandas 68095
+on:
+  push:
+    branches: [verify/pandas-68095-lock]
+permissions:
+  contents: read
+jobs:
+  relock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/try-examples-65734
+          fetch-depth: 0
+      - name: Merge upstream main, take main's pixi.lock
+        run: |
+          git config user.name ci && git config user.email ci@example.invalid
+          git remote add upstream https://github.com/pandas-dev/pandas.git
+          git fetch -q upstream main
+          git merge --no-commit upstream/main || true
+          git checkout upstream/main -- pixi.lock
+          git status --short | head -20
+          echo "unmerged:"; git diff --name-only --diff-filter=U
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.1
+          run-install: false
+      - name: pixi lock
+        run: |
+          pixi lock
+          pixi lock --check && echo "lock is up to date"
+          git diff --stat upstream/main -- pixi.lock
+          grep -c "jupyterlite-sphinx" pixi.lock
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixi-lock
+          path: pixi.lock
